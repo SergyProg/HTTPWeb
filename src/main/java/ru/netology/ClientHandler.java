@@ -17,6 +17,7 @@ public class ClientHandler implements Runnable {
             "Connection: close\r\n" +
             "\r\n";
     private static final String KOD_404_NOT_FOUND = "404 Not Found";
+    private static final String KOD_400_BAD_REQUEST = "400 Bad Request";
     private static final String KOD_200_OK = "200 OK";
 
     public ClientHandler(Socket socket, Server server) {
@@ -30,76 +31,58 @@ public class ClientHandler implements Runnable {
         }
     }
 
-    private String readHeader() throws IOException {
-        BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
-        StringBuilder builder = new StringBuilder();
-        String ln = null;
-        while (true) {
-            try {
-                ln = reader.readLine();
-            } catch (IOException ex) {
-                break;
-            }
-            if (ln == null || ln.isEmpty()) {
-                break;
-            }
-            builder.append(ln + System.getProperty("line.separator"));
-        }
-        return builder.toString();
-    }
-
-    private String getURIFromHeader(String header) {
-        int from = header.indexOf(" ") + 1;
-        int to = header.indexOf(" ", from);
-        String uri = header.substring(from, to);
-        int paramIndex = uri.indexOf("?");
-        if (paramIndex != -1) {
-            uri = uri.substring(0, paramIndex);
-        }
-        return uri;
-    }
-
-    private String getHeaderForAnswer(String kod, String contentType, String length) {
+    static String getHeaderForAnswer(String kod, String contentType, String length) {
         return responseHeaderTemplate.replaceAll("&responseKod", kod)
                 .replaceAll("&responseContentType", contentType)
                 .replaceAll("&responseLength", length);
+    }
+
+    static void returnResponseOK(Request request, BufferedOutputStream outBuffer) throws IOException {
+        final Path filePath = Path.of(".", Server.RESOURCE_DIR, request.getUri());
+        final String mimeType = Files.probeContentType(filePath);
+
+        if(mimeType.contains("html")) {
+            final var template = Files.readString(filePath);
+            final var content = template.replace(
+                    "{time}",
+                    LocalDateTime.now().toString()
+            ).getBytes();
+            outBuffer.write(getHeaderForAnswer(KOD_200_OK, mimeType, Integer.toString(content.length)).getBytes());
+            outBuffer.write(content);
+        }
+
+        final Long length = Files.size(filePath);
+        outBuffer.write(getHeaderForAnswer(KOD_200_OK, mimeType, Long.toString(length)).getBytes());
+        Files.copy(filePath, outBuffer);
+        outBuffer.flush();
+    }
+
+    static void returnResponseError(String errorCode, BufferedOutputStream outBuffer) throws IOException {
+        outBuffer.write(getHeaderForAnswer(errorCode, "", "0").getBytes());
+        outBuffer.flush();
     }
 
     @Override
     public void run() {
         try {
             BufferedOutputStream outBuffer = new BufferedOutputStream(outputStream);
-            String header = readHeader();
-            if (!header.isEmpty()) {
-                System.out.println(header);
-                final String path = getURIFromHeader(header);
-                if (!server.validPaths.contains(path)) {
-                    outBuffer.write(getHeaderForAnswer(KOD_404_NOT_FOUND, "", "0").getBytes());
-                    outBuffer.flush();
-                    return;
-                }
-
-                final Path filePath = Path.of(server.RESOURCE_DIR + path);
-                final String mimeType = Files.probeContentType(filePath);
-
-                if (path.equals("/classic.html")) {
-                    final var template = Files.readString(filePath);
-                    final var content = template.replace(
-                            "{time}",
-                            LocalDateTime.now().toString()
-                    ).getBytes();
-                    outBuffer.write(getHeaderForAnswer(KOD_200_OK, mimeType, Integer.toString(content.length)).getBytes());
-                    outBuffer.write(content);
-                    outBuffer.flush();
-                    return;
-                }
-
-                final Long length = Files.size(filePath);
-                outBuffer.write(getHeaderForAnswer(KOD_200_OK, mimeType, Long.toString(length)).getBytes());
-                Files.copy(filePath, outBuffer);
-//                Files.copy(filePath, System.out);
-                outBuffer.flush();
+            BufferedReader inBuffer = new BufferedReader(new InputStreamReader(inputStream));
+            Request request = new Request(inBuffer);
+            System.out.println(request.getQueryParam("login"));
+            System.out.println(request.getQueryParams());
+            if(request.isEmptyRequest()) {return;}
+            if (request.isBadRequest()) {
+                returnResponseError(KOD_400_BAD_REQUEST, outBuffer);
+                return;
             }
+            Handler handler = server.getHandlers().get(request.getMethod())
+                    .get(request.getUri());
+            if (handler == null) {
+                returnResponseError(KOD_404_NOT_FOUND, outBuffer);
+                return;
+            }
+
+            handler.handle(request, outBuffer);
         } catch (IOException ex) {
             ex.printStackTrace();
         }
