@@ -2,7 +2,9 @@ package ru.netology;
 
 public class Main {
     public static void main(String[] args) {
-        int port = Server.DEFAULT_PORT;
+        final int DEFAULT_PORT = 23445; //9999;
+
+        int port = DEFAULT_PORT;
         if (args.length > 0) {
             port = Integer.parseInt(args[0]);
         }

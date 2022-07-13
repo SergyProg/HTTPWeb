@@ -11,13 +11,13 @@ public class ClientHandler implements Runnable {
     private Socket clientSocket = null;
     private InputStream inputStream;
     private OutputStream outputStream;
-    private static final String responseHeaderTemplate = "HTTP/1.1 &responseKod\r\n" +
+    private final String responseHeaderTemplate = "HTTP/1.1 &responseKod\r\n" +
             "Content-Type: &responseContentType\r\n" +
             "Content-Length: &responseLength\r\n" +
             "Connection: close\r\n" +
             "\r\n";
-    private static final String KOD_404_NOT_FOUND = "404 Not Found";
-    private static final String KOD_200_OK = "200 OK";
+    private final String KOD_404_NOT_FOUND = "404 Not Found";
+    private final String KOD_200_OK = "200 OK";
 
     public ClientHandler(Socket socket, Server server) {
         try {
