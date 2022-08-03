@@ -144,14 +144,15 @@ public class Request {
         return queryParams;
     }
 
-    public String getQueryParam(String param) {
-        if(queryParams == null) {return "";}
+    public List<NameValuePair> getQueryParam(String param) {
+        List<NameValuePair> returnParams = null;
+        if(queryParams == null) {return returnParams;}
         for(NameValuePair valuePair : queryParams){
             if(valuePair.getName().equals(param)){
-                return valuePair.getValue().toString();
+                returnParams.add(valuePair);
             }
         }
-        return "";
+        return returnParams;
     }
 
     public boolean isBadRequest(){

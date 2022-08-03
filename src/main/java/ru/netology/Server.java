@@ -10,14 +10,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class Server {
-    final static List<String> validMethods = List.of("GET", "POST");
-    private final static Map<String, Map<String, Handler>> handlers = new ConcurrentHashMap<>();
-    public final List<String> validPaths = List.of("/index.html", "/spring.svg", "/spring.png", "/resources.html", "/styles.css", "/app.js", "/links.html", "/forms.html", "/classic.html", "/events.html", "/events.js", "/default-get.html");
-    public static final String RESOURCE_DIR = "public";
-    private static ServerSocket serverSocket = null;
-    public static final int DEFAULT_PORT = 23445; //9999;
+    final List<String> validMethods = List.of("GET", "POST");
+    private final Map<String, Map<String, Handler>> handlers = new ConcurrentHashMap<>();
+    private ServerSocket serverSocket = null;
 
-    private static ExecutorService executorService = Executors.newFixedThreadPool(64);
+    private ExecutorService executorService = Executors.newFixedThreadPool(64);
 
     Server(int port) {
         try {
@@ -53,7 +50,7 @@ public class Server {
         }
     }
 
-    public static Map<String, Map<String, Handler>> getHandlers() {
+    public Map<String, Map<String, Handler>> getHandlers() {
         return handlers;
     }
 }

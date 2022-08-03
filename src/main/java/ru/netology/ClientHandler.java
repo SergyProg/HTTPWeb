@@ -37,8 +37,8 @@ public class ClientHandler implements Runnable {
                 .replaceAll("&responseLength", length);
     }
 
-    static void returnResponseOK(Request request, BufferedOutputStream outBuffer) throws IOException {
-        final Path filePath = Path.of(".", Server.RESOURCE_DIR, request.getUri());
+    static void returnResponseOK(Request request, BufferedOutputStream outBuffer, String RESOURCE_DIR) throws IOException {
+        final Path filePath = Path.of(".", RESOURCE_DIR, request.getUri());
         final String mimeType = Files.probeContentType(filePath);
 
         if(mimeType.contains("html")) {
